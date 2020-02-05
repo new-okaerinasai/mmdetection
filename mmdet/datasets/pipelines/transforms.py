@@ -135,7 +135,7 @@ class Resize(object):
     def _resize_bboxes(self, results):
         img_shape = results['img_shape']
         for key in results.get('bbox_fields', []):
-            bboxes = results[key] * results['scale_factor']
+            bboxes = np.array(results[key]).reshape((-1, 4)).astype(np.float32) * results['scale_factor']
             bboxes[:, 0::2] = np.clip(bboxes[:, 0::2], 0, img_shape[1] - 1)
             bboxes[:, 1::2] = np.clip(bboxes[:, 1::2], 0, img_shape[0] - 1)
             results[key] = bboxes
@@ -401,7 +401,7 @@ class RandomCrop(object):
                 return None
             results['gt_bboxes'] = gt_bboxes[valid_inds, :]
             if 'gt_labels' in results:
-                results['gt_labels'] = results['gt_labels'][valid_inds]
+                results['gt_labels'] = np.array(results['gt_labels'])[valid_inds]
 
             # filter and crop the masks
             if 'gt_masks' in results:
@@ -574,6 +574,7 @@ class Expand(object):
         left = int(random.uniform(0, w * ratio - w))
         top = int(random.uniform(0, h * ratio - h))
         expand_img[top:top + h, left:left + w] = img
+        boxes = np.array(boxes)
         boxes = boxes + np.tile((left, top), 2).astype(boxes.dtype)
 
         results['img'] = expand_img
@@ -647,6 +648,7 @@ class MinIoURandomCrop(object):
                 left = random.uniform(w - new_w)
                 top = random.uniform(h - new_h)
 
+                boxes = np.array(boxes)
                 patch = np.array(
                     (int(left), int(top), int(left + new_w), int(top + new_h)))
                 overlaps = bbox_overlaps(
@@ -661,6 +663,7 @@ class MinIoURandomCrop(object):
                 if not mask.any():
                     continue
                 boxes = boxes[mask]
+                labels = np.array(labels)
                 labels = labels[mask]
 
                 # adjust boxes
